@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>커피 주문 앱</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f6f6f6;
+      padding: 30px;
+      text-align: center;
+    }
+
+    h2, h3 {
+      color: #333;
+    }
+
+    .menu-btn {
+      padding: 12px 24px;
+      margin: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #795548;
+      color: white;
+      cursor: pointer;
+    }
+
+    .menu-btn:hover {
+      background-color: #5d4037;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #admin-panel {
+      margin-top: 40px;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #bbb;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>☕ 커피 주문하기</h2>
+
+  <button class="menu-btn" onclick="order('아메리카노')">아메리카노</button>
+  <button class="menu-btn" onclick="order('라떼')">라떼</button>
+  <button class="menu-btn" onclick="order('바닐라라떼')">바닐라라떼</button>
+
+  <div id="result"></div>
+
+  <div id="admin-panel">
+    <h3>📊 관리자 통계</h3>
+    <button class="menu-btn" style="background:#607d8b;" onclick="showStats()">주문 통계 보기</button>
+    <table id="stats-table" style="display:none;">
+      <thead>
+        <tr><th>메뉴</th><th>클릭 수</th></tr>
+      </thead>
+      <tbody id="stats-body"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const menus = ['아메리카노', '라떼', '바닐라라떼'];
+
+    function order(menu) {
+      const key = `coffee_${menu}`;
+      const count = parseInt(localStorage.getItem(key) || 0) + 1;
+      localStorage.setItem(key, count);
+      document.getElementById('result').innerText = `${menu} 주문 완료! (총 ${count}회 클릭됨)`;
+    }
+
+    function showStats() {
+      const tbody = document.getElementById('stats-body');
+      tbody.innerHTML = '';
+      menus.forEach(menu => {
+        const key = `coffee_${menu}`;
+        const count = parseInt(localStorage.getItem(key) || 0);
+        const row = `<tr><td>${menu}</td><td>${count}</td></tr>`;
+        tbody.innerHTML += row;
+      });
+      document.getElementById('stats-table').style.display = 'table';
+    }
+  </script>
+</body>
+</html>
