@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>메뉴 설정 (관리자)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; padding: 20px; text-align: center; background: #f5f5f5; }
+    h2 { color: #333; }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+    .menu-tag {
+      display: inline-block;
+      background: #ddd;
+      padding: 8px 12px;
+      border-radius: 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .menu-tag:hover {
+      background: #bbb;
+    }
+    #preview, #copy-btn {
+      margin-top: 20px;
+    }
+    #preview-link {
+      word-break: break-all;
+      color: #1a73e8;
+    }
+  </style>
+</head>
+<body>
+  <h2>☕ 커피 메뉴 관리자</h2>
+
+  <input id="menuInput" type="text" placeholder="예: 아메리카노">
+  <button onclick="addMenu()">➕ 메뉴 추가</button>
+
+  <div id="menuList"></div>
+
+  <div id="preview">
+    <h3>🧾 주문 링크</h3>
+    <p id="preview-link"></p>
+    <button id="copy-btn" onclick="copyLink()">📋 링크 복사</button>
+  </div>
+
+  <script>
+    const menus = [];
+    const menuList = document.getElementById("menuList");
+    const previewLink = document.getElementById("preview-link");
+
+    function addMenu() {
+      const input = document.getElementById("menuInput");
+      const value = input.value.trim();
+      if (value && !menus.includes(value)) {
+        menus.push(value);
+        input.value = "";
+        renderMenus();
+        updateLink();
+      }
+    }
+
+    function removeMenu(name) {
+      const idx = menus.indexOf(name);
+      if (idx !== -1) {
+        menus.splice(idx, 1);
+        renderMenus();
+        updateLink();
+      }
+    }
+
+    function renderMenus() {
+      menuList.innerHTML = "";
+      menus.forEach(menu => {
+        const tag = document.createElement("span");
+        tag.className = "menu-tag";
+        tag.innerText = menu;
+        tag.onclick = () => removeMenu(menu);
+        menuList.appendChild(tag);
+      });
+    }
+
+    function updateLink() {
+      const base = window.location.origin + "/index.html?menus=";
+      const link = base + encodeURIComponent(menus.join(","));
+      previewLink.innerText = link;
+    }
+
+    function copyLink() {
+      const link = previewLink.innerText;
+      navigator.clipboard.writeText(link)
+        .then(() => alert("링크가 복사되었습니다!"))
+        .catch(() => alert("복사 실패"));
+    }
+  </script>
+</body>
+</html>
