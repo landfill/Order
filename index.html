@@ -17,7 +17,7 @@
   <p id="result" style="margin-top:1em;"></p>
 
   <script>
-    const apiBase = "https://script.google.com/macros/s/AKfycbxXTTSmXC7SuPVU90q72mgjifhzjrSj1j0ggCupkwsVs4NLOka8p16by7YYBrNaK6Jwug/exec";
+    const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
 
     let selectedMenu = null;
 
@@ -69,9 +69,7 @@
       const text = await res.text();
       const result = document.getElementById("result");
 
-      if (text === "DUPLICATE") {
-        result.innerText = "이미 주문하셨습니다!";
-      } else if (text === "SUCCESS") {
+      if (text === "SUCCESS") {
         result.innerText = "주문 완료! 감사합니다 ☺️";
       } else {
         result.innerText = `에러: ${text}`;
