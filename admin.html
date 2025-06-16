@@ -60,18 +60,21 @@
     return "menu-" + Math.random().toString(36).substring(2, 7);
   }
 
-  function addMenu(menu = { id: generateMenuId(), name: "", price: "", active: true }) {
-    const row = document.createElement("tr");
-    row.dataset.id = menu.id;
-    row.innerHTML = `
-      <td class="border px-2 py-1">${menu.id}</td>
-      <td class="border px-2 py-1"><input type="text" value="${menu.name}" class="w-full border rounded px-1 py-0.5" /></td>
-      <td class="border px-2 py-1"><input type="number" value="${menu.price}" class="w-full border rounded px-1 py-0.5" /></td>
-      <td class="border px-2 py-1 text-center"><input type="checkbox" ${menu.active ? "checked" : ""} /></td>
-      <td class="border px-2 py-1 text-center"><button onclick="removeRow(this)" class="text-red-500 font-semibold">삭제</button></td>
-    `;
-    document.getElementById("menuBody").appendChild(row);
-  }
+function addMenu(menu = { id: generateMenuId(), name: "", price: "", active: true }) {
+  const isActive = String(menu.active).toLowerCase() === "true";
+
+  const row = document.createElement("tr");
+  row.dataset.id = menu.id;
+  row.innerHTML = `
+    <td class="border px-2 py-1">${menu.id}</td>
+    <td class="border px-2 py-1"><input type="text" value="${menu.name}" class="w-full border rounded px-1 py-0.5" /></td>
+    <td class="border px-2 py-1"><input type="number" value="${menu.price}" class="w-full border rounded px-1 py-0.5" /></td>
+    <td class="border px-2 py-1 text-center"><input type="checkbox" ${isActive ? "checked" : ""} /></td>
+    <td class="border px-2 py-1 text-center"><button onclick="removeRow(this)" class="text-red-500 font-semibold">삭제</button></td>
+  `;
+  document.getElementById("menuBody").appendChild(row);
+}
+
 
 function removeRow(button) {
   const row = button.closest("tr");
