@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>단대신문동우회 주문받기</title>
+  <title>주문받기</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
   <div class="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-2xl p-6">
     <h1 class="text-xl font-bold mb-4 text-center">주문받기</h1>
 
-    <div id="menuList" class="space-y-3"></div>
+    <div id="menuList" class="space-y-3 text-sm text-gray-500">메뉴를 불러오는 중...</div>
 
     <input type="text" id="userName" placeholder="이름 (선택)" class="w-full mt-4 p-2 border rounded-md text-sm" />
 
-    <button onclick="submitOrder()" class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md font-semibold">
-      ✅ 주문하기
+    <button onclick="submitOrder()" id="submitBtn" class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md font-semibold">
+      주문하기
     </button>
 
     <p id="result" class="mt-4 text-center text-green-600 text-sm"></p>
@@ -32,12 +32,26 @@
     let selectedMenuId = null;
     let menus = [];
 
+    window.addEventListener("DOMContentLoaded", () => {
+      if (localStorage.getItem("ordered") === "1") {
+        document.getElementById("submitBtn").disabled = true;
+        document.getElementById("submitBtn").classList.add("opacity-50", "cursor-not-allowed");
+        document.getElementById("result").textContent = "이미 주문하셨습니다.";
+      }
+      loadMenus();
+    });
+
     async function loadMenus() {
       const res = await fetch(`${apiBase}?action=getMenus`);
       menus = await res.json();
 
       const container = document.getElementById("menuList");
       container.innerHTML = "";
+
+      if (menus.length === 0) {
+        container.textContent = "표시할 수 있는 메뉴가 없습니다.";
+        return;
+      }
 
       menus.forEach(menu => {
         const div = document.createElement("div");
@@ -67,6 +81,11 @@
     }
 
     async function submitOrder() {
+      if (localStorage.getItem("ordered") === "1") {
+        alert("이미 주문하셨습니다!");
+        return;
+      }
+
       if (!selectedMenuId) {
         alert("메뉴를 선택해주세요.");
         return;
@@ -74,6 +93,10 @@
 
       const menu = menus.find(m => m.id === selectedMenuId);
       const userName = document.getElementById("userName").value;
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.classList.add("opacity-50");
 
       const res = await fetch(`${apiBase}?action=submitOrder`, {
         method: "POST",
@@ -87,13 +110,14 @@
       });
 
       if (res.ok) {
+        localStorage.setItem("ordered", "1");
         document.getElementById("result").textContent = "주문이 완료되었습니다!";
       } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-50");
         document.getElementById("result").textContent = "주문 실패. 다시 시도해주세요.";
       }
     }
-
-    loadMenus();
   </script>
 </body>
 </html>
