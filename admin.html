@@ -93,15 +93,14 @@ function removeRow(button) {
 }
 
 
-  async function loadMenus() {
-    const res = await fetch(`${apiBase}/?action=getMenus`);
-    menus = await res.json(); // active = true인 것만 오니까 수정 필요 없음
-    const sheetRes = await fetch(`${apiBase}/?action=getMenus&all=1`);
-    const sheetMenus = await sheetRes.json();
+async function loadMenus() {
+  const res = await fetch(`${apiBase}/?action=getMenus&all=1`);
+  const data = await res.json();
 
-    document.getElementById("menuBody").innerHTML = "";
-    sheetMenus.forEach(menu => addMenu(menu));
-  }
+  document.getElementById("menuBody").innerHTML = "";
+  data.forEach(menu => addMenu(menu));
+}
+
 
   async function saveMenus() {
     const rows = document.querySelectorAll("#menuBody tr");
