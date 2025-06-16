@@ -1,178 +1,85 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>단대신문 연수회 주문받기</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f5f5f5;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 {
-      color: #2e2e2e;
-      margin-bottom: 10px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px;
-    }
-    .menu-list, .menu-buttons {
-      margin-top: 20px;
-    }
-    .menu-item {
-      display: inline-block;
-      padding: 8px 14px;
-      margin: 5px;
-      background: #e0e0e0;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .menu-item.selected {
-      background: #795548;
-      color: white;
-    }
-    .menu-btn {
-      padding: 12px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-    #result {
-      margin-top: 20px;
-      font-weight: bold;
-    }
-    #warning {
-      color: red;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px 15px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>메뉴 주문</title>
 </head>
 <body>
-  <h1>☕ 단대신문 연수회 주문받기</h1>
+  <h2>☕ 메뉴 선택</h2>
+  <div id="menuList"></div>
 
-  <input type="text" id="menuInput" placeholder="예: 아메리카노">
-  <button onclick="addMenu()">➕ 추가</button>
-
-  <div class="menu-list" id="menuList"></div>
-
-  <h3>📋 주문 가능한 메뉴</h3>
-  <div class="menu-buttons" id="menuButtons"></div>
-
-  <div id="result"></div>
-  <div id="warning"></div>
-
-  <div style="margin-top:40px;">
-    <h3>📊 주문 통계</h3>
-    <button onclick="showStats()">통계 보기</button>
-    <table id="statsTable" style="display:none;">
-      <thead><tr><th>메뉴</th><th>클릭 수</th></tr></thead>
-      <tbody id="statsBody"></tbody>
-    </table>
+  <div style="margin-top:1em;">
+    <label>이름 (선택): <input type="text" id="userName" /></label>
   </div>
 
+  <button id="submitBtn">주문하기</button>
+  <p id="result" style="margin-top:1em;"></p>
+
   <script>
-    let selectedMenus = [];
-    let currentSelection = null; // 현재 선택된 메뉴 (1개만 허용)
+    const apiBase = "https://script.google.com/macros/s/AKfycbxXTTSmXC7SuPVU90q72mgjifhzjrSj1j0ggCupkwsVs4NLOka8p16by7YYBrNaK6Jwug/exec";
 
-    function addMenu() {
-      const input = document.getElementById('menuInput');
-      const menu = input.value.trim();
-      if (menu && !selectedMenus.includes(menu)) {
-        selectedMenus.push(menu);
-        updateMenuList();
-        updateMenuButtons();
+    let selectedMenu = null;
+
+    // UUID 생성 (user_token)
+    function getToken() {
+      const key = "menu_order_token";
+      let token = localStorage.getItem(key);
+      if (!token) {
+        token = "anon_" + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem(key, token);
       }
-      input.value = '';
+      return token;
     }
 
-    function toggleMenu(menu) {
-      const idx = selectedMenus.indexOf(menu);
-      if (idx !== -1) {
-        selectedMenus.splice(idx, 1);
-        if (currentSelection === menu) currentSelection = null;
-        updateMenuList();
-        updateMenuButtons();
+    // 메뉴 불러오기
+    async function loadMenus() {
+      const res = await fetch(`${apiBase}?action=getMenus`);
+      const menus = await res.json();
+      const list = document.getElementById("menuList");
+      list.innerHTML = menus.map(menu => `
+        <div>
+          <input type="radio" name="menu" value="${menu.id}" data-name="${menu.name}"/>
+          ${menu.name} (${menu.price}원)
+        </div>
+      `).join("");
+    }
+
+    // 주문 전송
+    async function submitOrder() {
+      const selected = document.querySelector("input[name=menu]:checked");
+      if (!selected) {
+        alert("메뉴를 선택하세요.");
+        return;
       }
-    }
 
-    function updateMenuList() {
-      const listDiv = document.getElementById('menuList');
-      listDiv.innerHTML = '';
-      selectedMenus.forEach(menu => {
-        const span = document.createElement('span');
-        span.className = 'menu-item selected';
-        span.innerText = menu;
-        span.onclick = () => toggleMenu(menu);
-        listDiv.appendChild(span);
+      const payload = {
+        action: "submitOrder",
+        menu_id: selected.value,
+        menu_name: selected.dataset.name,
+        user_token: getToken(),
+        user_name: document.getElementById("userName").value.trim()
+      };
+
+      const res = await fetch(`${apiBase}?action=submitOrder`, {
+        method: "POST",
+        body: JSON.stringify(payload)
       });
-    }
 
-    function updateMenuButtons() {
-      const btnDiv = document.getElementById('menuButtons');
-      btnDiv.innerHTML = '';
-      selectedMenus.forEach(menu => {
-        const btn = document.createElement('button');
-        btn.className = 'menu-btn';
-        btn.innerText = menu;
-        btn.onclick = () => handleOrder(menu);
-        btnDiv.appendChild(btn);
-      });
-    }
+      const text = await res.text();
+      const result = document.getElementById("result");
 
-    function handleOrder(menu) {
-      const warning = document.getElementById('warning');
-      if (currentSelection === menu) {
-        // 같은 메뉴 선택 시 → 취소
-        currentSelection = null;
-        warning.innerText = '';
-        document.getElementById('result').innerText = `${menu} 선택이 취소되었습니다.`;
-      } else if (currentSelection !== null) {
-        // 이미 다른 메뉴 선택되어 있음
-        warning.innerText = '한 메뉴만 선택할 수 있어요!';
+      if (text === "DUPLICATE") {
+        result.innerText = "이미 주문하셨습니다!";
+      } else if (text === "SUCCESS") {
+        result.innerText = "주문 완료! 감사합니다 ☺️";
       } else {
-        // 새 메뉴 선택
-        currentSelection = menu;
-        warning.innerText = '';
-        order(menu);
+        result.innerText = `에러: ${text}`;
       }
     }
 
-    function order(menu) {
-      const key = `coffee_${menu}`;
-      const count = parseInt(localStorage.getItem(key) || 0) + 1;
-      localStorage.setItem(key, count);
-      document.getElementById('result').innerText = `${menu} 주문 완료! (총 ${count}회)`;
-    }
-
-    function showStats() {
-      const tbody = document.getElementById('statsBody');
-      const table = document.getElementById('statsTable');
-      tbody.innerHTML = '';
-      selectedMenus.forEach(menu => {
-        const count = parseInt(localStorage.getItem(`coffee_${menu}`) || 0);
-        const row = `<tr><td>${menu}</td><td>${count}</td></tr>`;
-        tbody.innerHTML += row;
-      });
-      table.style.display = 'table';
-    }
+    document.getElementById("submitBtn").addEventListener("click", submitOrder);
+    loadMenus();
   </script>
 </body>
 </html>
