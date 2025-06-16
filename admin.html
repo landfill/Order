@@ -31,20 +31,57 @@
     <p id="result" class="mt-4 text-center text-sm text-green-600"></p>
   </div>
 
-  <script>
-    const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
+<script>
+  const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
 
-    function generateMenuId() {
-      return "menu-" + Math.random().toString(36).substring(2, 7);
-    }
+  function generateMenuId() {
+    return "menu-" + Math.random().toString(36).substring(2, 7);
+  }
 
-    function addMenu(menu = { id: generateMenuId(), name: "", price: "", active: true }) {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="border px-2 py-1">${menu.id}</td>
-        <td class="border px-2 py-1"><input type="text" value="${menu.name}" class="w-full border rounded px-1 py-0.5" /></td>
-        <td class="border px-2 py-1"><input type="number" value="${menu.price}" class="w-full border rounded px-1 py-0.5" /></td>
-        <td class="border px-2 py-1 text-center"><input type="checkbox" ${menu.active ? "checked" : ""} /></td>
-        <td class="border px-2 py-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-500">삭제</button></td>
-      `;
-      row.dataset.id
+  function addMenu(menu = { id: generateMenuId(), name: "", price: "", active: true }) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="border px-2 py-1">${menu.id}</td>
+      <td class="border px-2 py-1"><input type="text" value="${menu.name}" class="w-full border rounded px-1 py-0.5" /></td>
+      <td class="border px-2 py-1"><input type="number" value="${menu.price}" class="w-full border rounded px-1 py-0.5" /></td>
+      <td class="border px-2 py-1 text-center"><input type="checkbox" ${menu.active ? "checked" : ""} /></td>
+      <td class="border px-2 py-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-500">삭제</button></td>
+    `;
+    row.dataset.id = menu.id;
+    document.getElementById("menuBody").appendChild(row);
+  }
+
+  async function loadMenus() {
+    const res = await fetch(`${apiBase}/?action=getMenus`);
+    const data = await res.json();
+    document.getElementById("menuBody").innerHTML = "";
+    data.forEach(menu => addMenu(menu));
+  }
+
+  async function saveMenus() {
+    const rows = document.querySelectorAll("#menuBody tr");
+    const menus = Array.from(rows).map(row => {
+      const cells = row.querySelectorAll("td");
+      return {
+        id: row.dataset.id || generateMenuId(),
+        name: cells[1].querySelector("input").value,
+        price: cells[2].querySelector("input").value,
+        active: cells[3].querySelector("input").checked
+      };
+    });
+
+    const res = await fetch(`${apiBase}/?action=saveMenus`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ menus })
+    });
+
+    document.getElementById("result").innerText =
+      res.ok ? "✅ 저장 완료!" : "⚠️ 저장 실패!";
+  }
+
+  // 초기 메뉴 로드
+  loadMenus();
+</script>
+</body>
+</html>
