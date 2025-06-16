@@ -19,11 +19,14 @@
     </button>
 
     <p id="result" class="mt-4 text-center text-green-600 text-sm"></p>
+
+    <!-- 주문 현황 표 -->
+    <div id="orderSummary" class="mt-10 space-y-4"></div>
   </div>
 
   <script>
     const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
-    const userToken = localStorage.getItem("coffee_user_token") || (function () {
+    const userToken = localStorage.getItem("coffee_user_token") || (() => {
       const t = Math.random().toString(36).substring(2, 10);
       localStorage.setItem("coffee_user_token", t);
       return t;
@@ -39,6 +42,7 @@
         document.getElementById("result").textContent = "이미 주문하셨습니다.";
       }
       loadMenus();
+      loadOrderSummary();
     });
 
     async function loadMenus() {
@@ -112,11 +116,56 @@
       if (res.ok) {
         localStorage.setItem("ordered", "1");
         document.getElementById("result").textContent = "주문이 완료되었습니다!";
+        loadOrderSummary(); // 주문 후 현황 갱신
       } else {
         btn.disabled = false;
         btn.classList.remove("opacity-50");
         document.getElementById("result").textContent = "주문 실패. 다시 시도해주세요.";
       }
+    }
+
+    async function loadOrderSummary() {
+      const res = await fetch(`${apiBase}?action=getOrders`);
+      const orders = await res.json();
+
+      const summary = {};
+      for (const order of orders) {
+        if (!order.menu_name) continue;
+        if (!summary[order.menu_name]) {
+          summary[order.menu_name] = { count: 0, users: [] };
+        }
+        summary[order.menu_name].count += 1;
+        summary[order.menu_name].users.push(order.user_name || "(이름 없음)");
+      }
+
+      const total = Object.values(summary).reduce((a, b) => a + b.count, 0);
+      const container = document.getElementById("orderSummary");
+      container.innerHTML = "<h2 class='text-md font-semibold'>📊 주문 현황</h2>";
+
+      Object.entries(summary).forEach(([menu, info]) => {
+        const bar = document.createElement("div");
+        const barLength = total ? (info.count / total) * 100 : 0;
+
+        bar.className = "relative bg-gray-100 border rounded-md px-3 py-2 hover:bg-gray-50 text-sm";
+
+        bar.innerHTML = `
+          <div class="flex justify-between text-gray-700 font-medium">
+            <span>${menu}</span>
+            <span>${info.count}명</span>
+          </div>
+          <div class="relative h-2 bg-blue-100 rounded overflow-hidden mt-1 mb-1">
+            <div class="absolute top-0 left-0 h-2 bg-blue-500" style="width: ${barLength}%;"></div>
+          </div>
+          <details class="text-xs text-gray-600 mt-1">
+            <summary class="cursor-pointer text-blue-600">주문자 보기</summary>
+            <ul class="mt-1 pl-4 list-disc">
+              ${info.users.map(name => `<li>${name}</li>`).join("")}
+            </ul>
+          </details>
+        `;
+
+        container.appendChild(bar);
+      });
     }
   </script>
 </body>
