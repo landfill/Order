@@ -1,99 +1,86 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>메뉴 설정 (관리자)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>메뉴 관리자</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; text-align: center; background: #f5f5f5; }
-    h2 { color: #333; }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px;
-    }
-    .menu-tag {
-      display: inline-block;
-      background: #ddd;
-      padding: 8px 12px;
-      border-radius: 20px;
-      margin: 5px;
-      cursor: pointer;
-    }
-    .menu-tag:hover {
-      background: #bbb;
-    }
-    #preview, #copy-btn {
-      margin-top: 20px;
-    }
-    #preview-link {
-      word-break: break-all;
-      color: #1a73e8;
-    }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 6px; }
+    th { background: #f0f0f0; }
+    input[type="text"], input[type="number"] { width: 100px; }
   </style>
 </head>
 <body>
-  <h2>☕ 커피 메뉴 관리자</h2>
-
-  <input id="menuInput" type="text" placeholder="예: 아메리카노">
-  <button onclick="addMenu()">➕ 메뉴 추가</button>
-
-  <div id="menuList"></div>
-
-  <div id="preview">
-    <h3>🧾 주문 링크</h3>
-    <p id="preview-link"></p>
-    <button id="copy-btn" onclick="copyLink()">📋 링크 복사</button>
-  </div>
+  <h2>🛠️ 메뉴 관리자</h2>
+  <table id="menuTable">
+    <thead>
+      <tr>
+        <th>id</th>
+        <th>이름</th>
+        <th>가격</th>
+        <th>활성화</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="addRow()">➕ 새 메뉴 추가</button>
+  <button onclick="saveMenus()">💾 저장</button>
+  <p id="result" style="margin-top:1em;"></p>
 
   <script>
-    const menus = [];
-    const menuList = document.getElementById("menuList");
-    const previewLink = document.getElementById("preview-link");
+    const apiBase = "https://script.google.com/macros/s/AKfycbxXTTSmXC7SuPVU90q72mgjifhzjrSj1j0ggCupkwsVs4NLOka8p16by7YYBrNaK6Jwug/exec";
 
-    function addMenu() {
-      const input = document.getElementById("menuInput");
-      const value = input.value.trim();
-      if (value && !menus.includes(value)) {
-        menus.push(value);
-        input.value = "";
-        renderMenus();
-        updateLink();
-      }
+    function createRow(menu = { id: "", name: "", price: "", active: true }) {
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td><input type="text" value="${menu.id}" /></td>
+        <td><input type="text" value="${menu.name}" /></td>
+        <td><input type="number" value="${menu.price}" /></td>
+        <td><input type="checkbox" ${menu.active === true || menu.active === "true" ? "checked" : ""} /></td>
+        <td><button onclick="this.closest('tr').remove()">❌</button></td>
+      `;
+
+      document.querySelector("#menuTable tbody").appendChild(row);
     }
 
-    function removeMenu(name) {
-      const idx = menus.indexOf(name);
-      if (idx !== -1) {
-        menus.splice(idx, 1);
-        renderMenus();
-        updateLink();
-      }
+    async function loadMenus() {
+      const res = await fetch(`${apiBase}?action=getMenus`);
+      const menus = await res.json();
+      menus.forEach(menu => createRow(menu));
     }
 
-    function renderMenus() {
-      menuList.innerHTML = "";
-      menus.forEach(menu => {
-        const tag = document.createElement("span");
-        tag.className = "menu-tag";
-        tag.innerText = menu;
-        tag.onclick = () => removeMenu(menu);
-        menuList.appendChild(tag);
+    function addRow() {
+      createRow();
+    }
+
+    async function saveMenus() {
+      const rows = document.querySelectorAll("#menuTable tbody tr");
+      const menus = [];
+
+      for (let row of rows) {
+        const cells = row.querySelectorAll("td");
+        const id = cells[0].querySelector("input").value.trim();
+        const name = cells[1].querySelector("input").value.trim();
+        const price = parseInt(cells[2].querySelector("input").value.trim() || "0");
+        const active = cells[3].querySelector("input").checked;
+
+        if (!id || !name) continue;
+
+        menus.push({ id, name, price, active });
+      }
+
+      const res = await fetch(`${apiBase}?action=saveMenus`, {
+        method: "POST",
+        body: JSON.stringify(menus)
       });
+
+      const text = await res.text();
+      document.getElementById("result").innerText = (text === "OK") ? "✅ 저장 완료!" : `에러: ${text}`;
     }
 
-    function updateLink() {
-      const base = window.location.origin + "/index.html?menus=";
-      const link = base + encodeURIComponent(menus.join(","));
-      previewLink.innerText = link;
-    }
-
-    function copyLink() {
-      const link = previewLink.innerText;
-      navigator.clipboard.writeText(link)
-        .then(() => alert("링크가 복사되었습니다!"))
-        .catch(() => alert("복사 실패"));
-    }
+    loadMenus();
   </script>
 </body>
 </html>
