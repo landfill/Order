@@ -4,49 +4,58 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>메뉴 주문</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>☕ 메뉴 선택</h2>
-  <div id="menuList"></div>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6">
+    <h2 class="text-xl font-semibold mb-4">☕ 메뉴 선택</h2>
 
-  <div style="margin-top:1em;">
-    <label>이름 (선택): <input type="text" id="userName" /></label>
+    <div id="menuList" class="space-y-2"></div>
+
+    <div class="mt-4">
+      <label class="block text-sm text-gray-600 mb-1">이름 (선택)</label>
+      <input type="text" id="userName" class="w-full border px-3 py-2 rounded-md" placeholder="이름을 입력하세요" />
+    </div>
+
+    <button id="submitBtn" class="mt-4 w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">
+      주문하기
+    </button>
+
+    <p id="result" class="mt-4 text-sm text-center text-green-600"></p>
   </div>
-
-  <button id="submitBtn">주문하기</button>
-  <p id="result" style="margin-top:1em;"></p>
 
   <script>
     const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
+    const tokenKey = "menu_order_token";
+    const submittedKey = "order_submitted";
 
-    let selectedMenu = null;
-
-    // UUID 생성 (user_token)
     function getToken() {
-      const key = "menu_order_token";
-      let token = localStorage.getItem(key);
+      let token = localStorage.getItem(tokenKey);
       if (!token) {
-        token = "anon_" + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem(key, token);
+        token = "anon_" + Math.random().toString(36).substring(2);
+        localStorage.setItem(tokenKey, token);
       }
       return token;
     }
 
-    // 메뉴 불러오기
     async function loadMenus() {
       const res = await fetch(`${apiBase}?action=getMenus`);
       const menus = await res.json();
       const list = document.getElementById("menuList");
       list.innerHTML = menus.map(menu => `
-        <div>
-          <input type="radio" name="menu" value="${menu.id}" data-name="${menu.name}"/>
+        <label class="flex items-center">
+          <input type="radio" name="menu" value="${menu.id}" data-name="${menu.name}" class="mr-2" />
           ${menu.name} (${menu.price}원)
-        </div>
+        </label>
       `).join("");
     }
 
-    // 주문 전송
     async function submitOrder() {
+      if (localStorage.getItem(submittedKey)) {
+        alert("이미 주문하셨습니다.");
+        return;
+      }
+
       const selected = document.querySelector("input[name=menu]:checked");
       if (!selected) {
         alert("메뉴를 선택하세요.");
@@ -70,9 +79,12 @@
       const result = document.getElementById("result");
 
       if (text === "SUCCESS") {
-        result.innerText = "주문 완료! 감사합니다 ☺️";
+        localStorage.setItem(submittedKey, "1");
+        result.innerText = "✅ 주문이 완료되었습니다.";
+        document.getElementById("submitBtn").disabled = true;
+        document.getElementById("submitBtn").classList.add("opacity-50", "cursor-not-allowed");
       } else {
-        result.innerText = `에러: ${text}`;
+        result.innerText = "⚠️ 오류: " + text;
       }
     }
 
