@@ -73,10 +73,25 @@
     document.getElementById("menuBody").appendChild(row);
   }
 
-  function removeRow(button) {
-    const row = button.closest("tr");
-    row.remove();
-  }
+function removeRow(button) {
+  const row = button.closest("tr");
+  const menuId = row.dataset.id;
+
+  // UI에서 제거
+  row.remove();
+
+  // 서버에도 삭제 요청
+  fetch(`${apiBase}/?action=deleteMenu`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ menu_id: menuId })
+  }).then(res => {
+    if (!res.ok) {
+      alert("❌ 삭제 실패");
+    }
+  });
+}
+
 
   async function loadMenus() {
     const res = await fetch(`${apiBase}/?action=getMenus`);
