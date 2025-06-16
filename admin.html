@@ -3,36 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>메뉴 관리</title>
+  <title>메뉴 관리자</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <div class="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6">
-    <h2 class="text-xl font-semibold mb-4">📋 메뉴 관리자</h2>
+  <div class="max-w-4xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6 space-y-8">
+    
+    <!-- 메뉴 관리 -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">📋 메뉴 관리자</h2>
+      <table class="w-full border text-sm" id="menuTable">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border px-2 py-1">ID</th>
+            <th class="border px-2 py-1">이름</th>
+            <th class="border px-2 py-1">가격</th>
+            <th class="border px-2 py-1">활성</th>
+            <th class="border px-2 py-1">삭제</th>
+          </tr>
+        </thead>
+        <tbody id="menuBody"></tbody>
+      </table>
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button onclick="addMenu()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">➕ 메뉴 추가</button>
+        <button onclick="saveMenus()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">💾 저장</button>
+        <button onclick="resetMenus()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">🗑️ 메뉴 초기화</button>
+        <button onclick="resetOrders()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">🧹 주문 초기화</button>
+        <button onclick="loadChart()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">📊 주문현황 새로고침</button>
+      </div>
+      <p id="result" class="mt-2 text-sm text-green-600"></p>
+    </section>
 
-    <table class="w-full border text-sm" id="menuTable">
-      <thead>
-        <tr class="bg-gray-100">
-          <th class="border px-2 py-1">ID</th>
-          <th class="border px-2 py-1">이름</th>
-          <th class="border px-2 py-1">가격</th>
-          <th class="border px-2 py-1">활성</th>
-          <th class="border px-2 py-1">삭제</th>
-        </tr>
-      </thead>
-      <tbody id="menuBody"></tbody>
-    </table>
+    <!-- 주문 현황 -->
+    <section>
+      <h2 class="text-xl font-semibold mb-2">📈 주문 현황</h2>
+      <canvas id="orderChart" height="200"></canvas>
+    </section>
 
-    <div class="mt-4 flex gap-2">
-      <button onclick="addMenu()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">➕ 메뉴 추가</button>
-      <button onclick="saveMenus()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">💾 저장</button>
-    </div>
-
-    <p id="result" class="mt-4 text-center text-sm text-green-600"></p>
   </div>
 
 <script>
   const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
+  let chartInstance = null;
 
   function generateMenuId() {
     return "menu-" + Math.random().toString(36).substring(2, 7);
@@ -76,12 +89,64 @@
       body: JSON.stringify({ menus })
     });
 
-    document.getElementById("result").innerText =
-      res.ok ? "✅ 저장 완료!" : "⚠️ 저장 실패!";
+    document.getElementById("result").innerText = res.ok ? "✅ 저장 완료!" : "⚠️ 저장 실패!";
   }
 
-  // 초기 메뉴 로드
+  async function resetMenus() {
+    if (confirm("정말로 메뉴를 초기화하시겠습니까?")) {
+      await fetch(`${apiBase}/?action=resetMenus`, { method: "POST" });
+      loadMenus();
+    }
+  }
+
+  async function resetOrders() {
+    if (confirm("정말로 주문정보를 모두 초기화하시겠습니까?")) {
+      await fetch(`${apiBase}/?action=resetOrders`, { method: "POST" });
+      loadChart();
+    }
+  }
+
+  async function loadChart() {
+    const res = await fetch(`${apiBase}/?action=getOrders`);
+    const orders = await res.json();
+
+    // 메뉴명별 주문 수 계산
+    const counts = {};
+    orders.forEach(o => {
+      counts[o.menu] = (counts[o.menu] || 0) + 1;
+    });
+
+    const labels = Object.keys(counts);
+    const values = Object.values(counts);
+
+    const ctx = document.getElementById('orderChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '주문 수',
+          data: values,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw}건` } }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // 초기 로딩
   loadMenus();
+  loadChart();
 </script>
 </body>
 </html>
