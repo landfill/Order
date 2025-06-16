@@ -38,17 +38,30 @@
       return token;
     }
 
-    async function loadMenus() {
-      const res = await fetch(`${apiBase}?action=getMenus`);
-      const menus = await res.json();
-      const list = document.getElementById("menuList");
-      list.innerHTML = menus.map(menu => `
-        <label class="flex items-center">
-          <input type="radio" name="menu" value="${menu.id}" data-name="${menu.name}" class="mr-2" />
-          ${menu.name} (${menu.price}원)
-        </label>
-      `).join("");
+async function loadMenus() {
+  const list = document.getElementById("menuList");
+  list.innerHTML = `<p class="text-gray-500 text-sm">☕ 메뉴를 불러오는 중입니다...</p>`;
+
+  try {
+    const res = await fetch(`${apiBase}?action=getMenus`);
+    const menus = await res.json();
+
+    if (!menus.length) {
+      list.innerHTML = `<p class="text-red-500 text-sm">표시할 수 있는 메뉴가 없습니다.</p>`;
+      return;
     }
+
+    list.innerHTML = menus.map(menu => `
+      <label class="flex items-center">
+        <input type="radio" name="menu" value="${menu.id}" data-name="${menu.name}" class="mr-2" />
+        ${menu.name} (${menu.price}원)
+      </label>
+    `).join("");
+  } catch (e) {
+    list.innerHTML = `<p class="text-red-500 text-sm">❌ 메뉴 로딩에 실패했습니다.</p>`;
+  }
+}
+
 
     async function submitOrder() {
       if (localStorage.getItem(submittedKey)) {
