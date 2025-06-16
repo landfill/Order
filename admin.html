@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>메뉴 관리자</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <div class="max-w-4xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6 space-y-8">
+  <div class="max-w-4xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6 space-y-10">
     
     <!-- 메뉴 관리 -->
     <section>
@@ -38,7 +37,7 @@
     <!-- 주문 현황 -->
     <section>
       <h2 class="text-xl font-semibold mb-2">📈 주문 현황</h2>
-      <canvas id="orderChart" height="200"></canvas>
+      <div id="orderSummary" class="space-y-3"></div>
     </section>
 
   </div>
@@ -110,37 +109,43 @@
     const res = await fetch(`${apiBase}/?action=getOrders`);
     const orders = await res.json();
 
-    // 메뉴명별 주문 수 계산
-    const counts = {};
-    orders.forEach(o => {
-      counts[o.menu] = (counts[o.menu] || 0) + 1;
-    });
-
-    const labels = Object.keys(counts);
-    const values = Object.values(counts);
-
-    const ctx = document.getElementById('orderChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
-    chartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: '주문 수',
-          data: values,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.raw}건` } }
-        },
-        scales: {
-          y: { beginAtZero: true }
-        }
+    const summary = {};
+    for (const order of orders) {
+      if (!order.menu_name) continue;
+      if (!summary[order.menu_name]) {
+        summary[order.menu_name] = { count: 0, users: [] };
       }
+      summary[order.menu_name].count += 1;
+      summary[order.menu_name].users.push(order.user_name || "(이름 없음)");
+    }
+
+    const total = Object.values(summary).reduce((a, b) => a + b.count, 0);
+    const container = document.getElementById("orderSummary");
+    container.innerHTML = "";
+
+    Object.entries(summary).forEach(([menu, info]) => {
+      const bar = document.createElement("div");
+      bar.className = "relative bg-gray-100 border rounded-md px-3 py-2 hover:bg-gray-50";
+
+      const barLength = (info.count / total) * 100;
+
+      bar.innerHTML = `
+        <div class="flex justify-between text-sm font-medium text-gray-800">
+          <span>${menu}</span>
+          <span>${info.count}명</span>
+        </div>
+        <div class="relative h-2 bg-blue-100 rounded overflow-hidden mt-1 mb-1">
+          <div class="absolute top-0 left-0 h-2 bg-blue-500" style="width: ${barLength}%;"></div>
+        </div>
+        <details class="text-xs text-gray-600 mt-1">
+          <summary class="cursor-pointer text-blue-600">주문자 보기</summary>
+          <ul class="mt-1 pl-4 list-disc">
+            ${info.users.map(name => `<li>${name}</li>`).join("")}
+          </ul>
+        </details>
+      `;
+
+      container.appendChild(bar);
     });
   }
 
