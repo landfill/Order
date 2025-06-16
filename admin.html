@@ -3,84 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>메뉴 관리자</title>
-  <style>
-    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 6px; }
-    th { background: #f0f0f0; }
-    input[type="text"], input[type="number"] { width: 100px; }
-  </style>
+  <title>메뉴 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>🛠️ 메뉴 관리자</h2>
-  <table id="menuTable">
-    <thead>
-      <tr>
-        <th>id</th>
-        <th>이름</th>
-        <th>가격</th>
-        <th>활성화</th>
-        <th>삭제</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <button onclick="addRow()">➕ 새 메뉴 추가</button>
-  <button onclick="saveMenus()">💾 저장</button>
-  <p id="result" style="margin-top:1em;"></p>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6">
+    <h2 class="text-xl font-semibold mb-4">📋 메뉴 관리자</h2>
+
+    <table class="w-full border text-sm" id="menuTable">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border px-2 py-1">ID</th>
+          <th class="border px-2 py-1">이름</th>
+          <th class="border px-2 py-1">가격</th>
+          <th class="border px-2 py-1">활성</th>
+          <th class="border px-2 py-1">삭제</th>
+        </tr>
+      </thead>
+      <tbody id="menuBody"></tbody>
+    </table>
+
+    <div class="mt-4 flex gap-2">
+      <button onclick="addMenu()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">➕ 메뉴 추가</button>
+      <button onclick="saveMenus()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">💾 저장</button>
+    </div>
+
+    <p id="result" class="mt-4 text-center text-sm text-green-600"></p>
+  </div>
 
   <script>
-    const apiBase = "https://script.google.com/macros/s/AKfycbxXTTSmXC7SuPVU90q72mgjifhzjrSj1j0ggCupkwsVs4NLOka8p16by7YYBrNaK6Jwug/exec";
+    const apiBase = "https://gas-proxy.letthelightsurroundyou.workers.dev";
 
-    function createRow(menu = { id: "", name: "", price: "", active: true }) {
+    function generateMenuId() {
+      return "menu-" + Math.random().toString(36).substring(2, 7);
+    }
+
+    function addMenu(menu = { id: generateMenuId(), name: "", price: "", active: true }) {
       const row = document.createElement("tr");
-
       row.innerHTML = `
-        <td><input type="text" value="${menu.id}" /></td>
-        <td><input type="text" value="${menu.name}" /></td>
-        <td><input type="number" value="${menu.price}" /></td>
-        <td><input type="checkbox" ${menu.active === true || menu.active === "true" ? "checked" : ""} /></td>
-        <td><button onclick="this.closest('tr').remove()">❌</button></td>
+        <td class="border px-2 py-1">${menu.id}</td>
+        <td class="border px-2 py-1"><input type="text" value="${menu.name}" class="w-full border rounded px-1 py-0.5" /></td>
+        <td class="border px-2 py-1"><input type="number" value="${menu.price}" class="w-full border rounded px-1 py-0.5" /></td>
+        <td class="border px-2 py-1 text-center"><input type="checkbox" ${menu.active ? "checked" : ""} /></td>
+        <td class="border px-2 py-1 text-center"><button onclick="this.closest('tr').remove()" class="text-red-500">삭제</button></td>
       `;
-
-      document.querySelector("#menuTable tbody").appendChild(row);
-    }
-
-    async function loadMenus() {
-      const res = await fetch(`${apiBase}?action=getMenus`);
-      const menus = await res.json();
-      menus.forEach(menu => createRow(menu));
-    }
-
-    function addRow() {
-      createRow();
-    }
-
-    async function saveMenus() {
-      const rows = document.querySelectorAll("#menuTable tbody tr");
-      const menus = [];
-
-      for (let row of rows) {
-        const cells = row.querySelectorAll("td");
-        const id = cells[0].querySelector("input").value.trim();
-        const name = cells[1].querySelector("input").value.trim();
-        const price = parseInt(cells[2].querySelector("input").value.trim() || "0");
-        const active = cells[3].querySelector("input").checked;
-
-        if (!id || !name) continue;
-
-        menus.push({ id, name, price, active });
-      }
-
-      const res = await fetch(`${apiBase}?action=saveMenus`, {
-        method: "POST",
-        body: JSON.stringify(menus)
-      });
-
-      const text = await res.text();
-      document.getElementById("result").innerText = (text === "OK") ? "✅ 저장 완료!" : `에러: ${text}`;
-    }
-
-    loadMenus();
-  </script>
-</body>
-</html>
+      row.dataset.id
